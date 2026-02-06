@@ -1,0 +1,15 @@
+# Root level ignores
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment files (extra safety at root)
+.env
+.env.local
+.env.*.local

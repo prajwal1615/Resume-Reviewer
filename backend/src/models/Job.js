@@ -10,6 +10,12 @@ const jobSchema = new mongoose.Schema(
     company: String,
     role: String,
     jobDescription: String,
+    pinned: {
+      type: Boolean,
+      default: false
+    },
+    interviewDate: Date,
+    reminderAt: Date,
     status: {
       type: String,
       enum: ["Applied", "Interview", "Offer", "Rejected"],

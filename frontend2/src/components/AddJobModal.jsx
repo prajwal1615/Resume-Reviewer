@@ -10,6 +10,8 @@ export default function AddJobModal({ onClose, onSuccess }) {
     jobDescription: "",
     status: "Applied",
     appliedDate: new Date().toISOString().slice(0, 10),
+    interviewDate: "",
+    reminderAt: "",
   });
 
   const handleSubmit = async (e) => {
@@ -20,6 +22,8 @@ export default function AddJobModal({ onClose, onSuccess }) {
       await api.post("/jobs", {
         ...form,
         appliedDate: form.appliedDate || undefined,
+        interviewDate: form.interviewDate || undefined,
+        reminderAt: form.reminderAt || undefined,
       });
       onSuccess?.();
       onClose();
@@ -36,7 +40,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
-      <div className="relative card p-8 w-full max-w-md animate-slide-up">
+      <div className="relative card p-6 w-full max-w-md animate-slide-up">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-slate-900">Add Job Application</h2>
           <button
@@ -49,7 +53,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {error && (
             <p className="text-red-600 text-sm bg-red-50 p-3 rounded-xl">{error}</p>
           )}
@@ -68,7 +72,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
             required
           />
           <textarea
-            className="input-field min-h-[80px] resize-none"
+            className="input-field min-h-[60px] resize-none"
             placeholder="Job description (optional)"
             value={form.jobDescription}
             onChange={(e) =>
@@ -90,6 +94,22 @@ export default function AddJobModal({ onClose, onSuccess }) {
             className="input-field"
             value={form.appliedDate}
             onChange={(e) => setForm((f) => ({ ...f, appliedDate: e.target.value }))}
+          />
+          <input
+            type="date"
+            className="input-field"
+            value={form.interviewDate}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, interviewDate: e.target.value }))
+            }
+            placeholder="Interview date (optional)"
+          />
+          <input
+            type="date"
+            className="input-field"
+            value={form.reminderAt}
+            onChange={(e) => setForm((f) => ({ ...f, reminderAt: e.target.value }))}
+            placeholder="Reminder date (optional)"
           />
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={loading} className="btn-primary flex-1">

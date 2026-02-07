@@ -5,11 +5,19 @@ import StatsCard from "../components/StatsCard";
 import AddJobModal from "../components/AddJobModal";
 
 export default function Dashboard() {
+  const STATUS_ORDER = ["Applied", "Interview", "Offer", "Rejected"];
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("list");
+  const [statusFilter, setStatusFilter] = useState(() => {
+    if (typeof window === "undefined") return "All";
+    return localStorage.getItem("jobflow_status_filter") || "All";
+  });
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
   const didInit = useRef(false);
 
   const fetchJobs = async (query = "") => {
@@ -38,7 +46,94 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("jobflow_status_filter", statusFilter);
+    }
+  }, [statusFilter]);
+
   const statusCount = (status) => jobs.filter((j) => j.status === status).length;
+  const filteredJobs =
+    statusFilter === "All"
+      ? jobs
+      : jobs.filter((job) => job.status === statusFilter);
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return bDate - aDate;
+  });
+  const recentActivity = [...jobs]
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    .slice(0, 5);
+
+  const groupedByStatus = STATUS_ORDER.reduce((acc, status) => {
+    acc[status] = filteredJobs.filter((job) => job.status === status);
+    return acc;
+  }, {});
+
+  const upcomingReminders = jobs
+    .filter((job) => job.reminderAt)
+    .sort((a, b) => new Date(a.reminderAt) - new Date(b.reminderAt))
+    .slice(0, 6);
+
+  const handleSnooze = async (job, days) => {
+    try {
+      const next = new Date(Date.now() + days * 86400000).toISOString();
+      await api.put(`/jobs/${job._id}`, { ...job, reminderAt: next });
+      fetchJobs(searchTerm.trim());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClearReminder = async (job) => {
+    try {
+      await api.put(`/jobs/${job._id}`, { ...job, reminderAt: null });
+      fetchJobs(searchTerm.trim());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const getSnoozeDays = (reminderAt) => {
+    if (!reminderAt) return null;
+    const now = new Date();
+    const target = new Date(reminderAt);
+    const diffMs = target.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0);
+    const diffDays = Math.round(diffMs / 86400000);
+    return diffDays > 0 ? diffDays : null;
+  };
+
+  const buildMonthDays = (date) => {
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const startDay = start.getDay();
+    const days = [];
+    const gridStart = new Date(start);
+    gridStart.setDate(start.getDate() - startDay);
+    for (let i = 0; i < 42; i += 1) {
+      const current = new Date(gridStart);
+      current.setDate(gridStart.getDate() + i);
+      days.push(current);
+    }
+    return days;
+  };
+
+  const formatKey = (date) => date.toISOString().slice(0, 10);
+  const monthDays = buildMonthDays(calendarMonth);
+  const eventsByDate = jobs.reduce((acc, job) => {
+    const addEvent = (dt, label) => {
+      if (!dt) return;
+      const key = formatKey(new Date(dt));
+      if (!acc[key]) acc[key] = [];
+      acc[key].push({ job, label });
+    };
+    addEvent(job.appliedDate, "Applied");
+    addEvent(job.interviewDate, "Interview");
+    addEvent(job.reminderAt, "Reminder");
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30">
@@ -104,6 +199,26 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {["list", "kanban", "calendar"].map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                viewMode === mode
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+              }`}
+            >
+              {mode === "list"
+                ? "List"
+                : mode === "kanban"
+                ? "Kanban"
+                : "Calendar"}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
@@ -124,16 +239,302 @@ export default function Dashboard() {
               Add Your First Job
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {jobs.map((job) => (
-              <JobCard
-                key={job._id}
-                job={job}
-                onUpdate={() => fetchJobs(searchTerm.trim())}
-                onDelete={() => fetchJobs(searchTerm.trim())}
-              />
+        ) : viewMode === "list" ? (
+          <div className="space-y-8">
+            <div className="card p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Saved Filters</h3>
+                  <p className="text-sm text-slate-500">Quickly focus on a single stage.</p>
+                </div>
+                <button
+                  onClick={() => setStatusFilter("All")}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  Reset
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {["All", "Applied", "Interview", "Offer", "Rejected"].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      statusFilter === status
+                        ? "bg-primary-600 text-white border-primary-600"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-primary-300 hover:text-primary-700"
+                    }`}
+                  >
+                    {status === "All"
+                      ? "All Jobs"
+                      : `${status} (${statusCount(status)})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
+              <div>
+                {filteredJobs.length === 0 ? (
+                  <div className="card p-12 text-center">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      No jobs in {statusFilter}
+                    </h3>
+                    <p className="text-slate-500 mb-6">
+                      Try switching filters or add a new job in this stage.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <button onClick={() => setStatusFilter("All")} className="btn-secondary">
+                        Clear filter
+                      </button>
+                      <button onClick={() => setShowAddModal(true)} className="btn-primary">
+                        Add Job
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {sortedJobs.map((job) => (
+                      <JobCard
+                        key={job._id}
+                        job={job}
+                        onUpdate={() => fetchJobs(searchTerm.trim())}
+                        onDelete={() => fetchJobs(searchTerm.trim())}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="card p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
+                {recentActivity.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Activity will show up as you add or update jobs.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {recentActivity.map((job) => (
+                      <div key={`activity-${job._id}`} className="flex gap-3">
+                        <div className="mt-1 h-2.5 w-2.5 rounded-full bg-primary-500" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            {job.company} · {job.role}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Status: {job.status}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(job.updatedAt || job.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">Reminders</h3>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="text-sm text-primary-600 hover:text-primary-700"
+                >
+                  Add reminder
+                </button>
+              </div>
+              {upcomingReminders.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No reminders yet. Add one to keep track of follow-ups.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingReminders.map((job) => (
+                    <div
+                      key={`reminder-${job._id}`}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">
+                          {job.company} · {job.role}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Reminder: {new Date(job.reminderAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(() => {
+                          const snoozeDays = getSnoozeDays(job.reminderAt);
+                          return (
+                            <>
+                        <button
+                          onClick={() => handleSnooze(job, 1)}
+                          disabled={snoozeDays === 1}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                            snoozeDays === 1
+                              ? "bg-primary-600 text-white border-primary-600"
+                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          Snooze 1d
+                        </button>
+                        <button
+                          onClick={() => handleSnooze(job, 3)}
+                          disabled={snoozeDays === 3}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                            snoozeDays === 3
+                              ? "bg-primary-600 text-white border-primary-600"
+                              : "border-slate-200 text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          Snooze 3d
+                        </button>
+                        <button
+                          onClick={() => handleClearReminder(job)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 hover:border-slate-300"
+                        >
+                          Clear
+                        </button>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : viewMode === "kanban" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {STATUS_ORDER.map((status) => (
+              <div key={status} className="card p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-slate-800">{status}</h3>
+                  <span className="text-xs text-slate-500">
+                    {groupedByStatus[status]?.length || 0}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {(groupedByStatus[status] || []).map((job) => (
+                    <JobCard
+                      key={`kanban-${job._id}`}
+                      job={job}
+                      onUpdate={() => fetchJobs(searchTerm.trim())}
+                      onDelete={() => fetchJobs(searchTerm.trim())}
+                    />
+                  ))}
+                  {(groupedByStatus[status] || []).length === 0 && (
+                    <p className="text-xs text-slate-400">No jobs here.</p>
+                  )}
+                </div>
+              </div>
             ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() =>
+                    setCalendarMonth(
+                      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                    )
+                  }
+                  className="text-sm text-slate-600 hover:text-slate-800"
+                >
+                  Prev
+                </button>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {calendarMonth.toLocaleString("default", { month: "long", year: "numeric" })}
+                </h3>
+                <button
+                  onClick={() =>
+                    setCalendarMonth(
+                      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                    )
+                  }
+                  className="text-sm text-slate-600 hover:text-slate-800"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-2 text-xs text-slate-400 mb-2">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                  <div key={day} className="text-center">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {monthDays.map((date) => {
+                  const key = formatKey(date);
+                  const events = eventsByDate[key] || [];
+                  const isCurrentMonth = date.getMonth() === calendarMonth.getMonth();
+                  const isSelected = selectedDate === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedDate(key)}
+                      className={`min-h-[84px] rounded-xl border p-2 text-left transition-colors ${
+                        isSelected
+                          ? "border-primary-500 bg-primary-50"
+                          : "border-slate-200 hover:border-slate-300"
+                      } ${isCurrentMonth ? "bg-white" : "bg-slate-50 text-slate-400"}`}
+                    >
+                      <div className="text-xs font-medium">{date.getDate()}</div>
+                      {events.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {events.slice(0, 2).map((event, idx) => (
+                            <div
+                              key={`${key}-${idx}`}
+                              className="text-[10px] rounded-full bg-slate-100 px-2 py-0.5 text-slate-600"
+                            >
+                              {event.label}: {event.job.company}
+                            </div>
+                          ))}
+                          {events.length > 2 && (
+                            <div className="text-[10px] text-slate-400">
+                              +{events.length - 2} more
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                {selectedDate ? `Events on ${selectedDate}` : "Select a date"}
+              </h3>
+              {(selectedDate && eventsByDate[selectedDate]?.length) ? (
+                <div className="space-y-3">
+                  {eventsByDate[selectedDate].map((event, idx) => (
+                    <div
+                      key={`event-${selectedDate}-${idx}`}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">
+                          {event.job.company} · {event.job.role}
+                        </p>
+                        <p className="text-xs text-slate-500">{event.label}</p>
+                      </div>
+                      <span className="text-xs text-slate-400">{event.job.status}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  No events for this date.
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

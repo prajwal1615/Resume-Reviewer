@@ -11,6 +11,40 @@ export default function ResumeReview() {
   const [result, setResult] = useState(null);
   const fileInputRef = useRef(null);
 
+  const normalizeScore = (value) =>
+    Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : null;
+
+  const renderList = (items, emptyLabel) => {
+    if (!items || items.length === 0) {
+      return <p className="text-sm text-slate-500">{emptyLabel}</p>;
+    }
+    return (
+      <ul className="mt-2 list-disc pl-5 text-slate-700">
+        {items.map((item, idx) => (
+          <li key={`${emptyLabel}-${idx}`}>{item}</li>
+        ))}
+      </ul>
+    );
+  };
+
+  const renderChips = (items, emptyLabel) => {
+    if (!items || items.length === 0) {
+      return <p className="text-sm text-slate-500">{emptyLabel}</p>;
+    }
+    return (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {items.map((item, idx) => (
+          <span
+            key={`${emptyLabel}-chip-${idx}`}
+            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-700"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
     if (f && f.type === "application/pdf") {
@@ -185,110 +219,133 @@ export default function ResumeReview() {
 
         {result && (
           <div className="card p-8 animate-slide-up">
-            <div className="flex items-center gap-4 mb-6">
-              <h2 className="text-xl font-bold text-slate-900">AI Feedback</h2>
-              {result.overallScore !== null &&
-                result.overallScore !== undefined && (
-                <span className="px-4 py-2 rounded-xl bg-primary-100 text-primary-700 font-bold">
-                  Resume Score: {result.overallScore}/100
-                </span>
-              )}
-              {result.atsScore !== null && result.atsScore !== undefined && (
-                <span className="px-4 py-2 rounded-xl bg-emerald-100 text-emerald-700 font-bold">
-                  ATS Match: {result.atsScore}/100
-                </span>
-              )}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">AI Feedback</h2>
+                <p className="text-sm text-slate-500">
+                  Detailed review based on your resume and job description
+                </p>
+              </div>
             </div>
-            <div className="prose prose-slate max-w-none">
-              {result.analysis ? (
-                <div className="space-y-6">
-                  {result.analysis.summary && (
-                    <div className="text-slate-700">
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Summary
-                      </h3>
-                      <p className="mt-2">{result.analysis.summary}</p>
-                    </div>
-                  )}
-                  {result.analysis.strengths?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Strengths
-                      </h3>
-                      <ul className="mt-2 list-disc pl-5 text-slate-700">
-                        {result.analysis.strengths.map((item, idx) => (
-                          <li key={`strength-${idx}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.analysis.improvements?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Improvements
-                      </h3>
-                      <ul className="mt-2 list-disc pl-5 text-slate-700">
-                        {result.analysis.improvements.map((item, idx) => (
-                          <li key={`improve-${idx}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.analysis.missing_keywords?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Missing Keywords
-                      </h3>
-                      <ul className="mt-2 list-disc pl-5 text-slate-700">
-                        {result.analysis.missing_keywords.map((item, idx) => (
-                          <li key={`missing-${idx}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.analysis.matching_keywords?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Matching Keywords
-                      </h3>
-                      <ul className="mt-2 list-disc pl-5 text-slate-700">
-                        {result.analysis.matching_keywords.map((item, idx) => (
-                          <li key={`match-${idx}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.analysis.formatting_tips?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Formatting Tips
-                      </h3>
-                      <ul className="mt-2 list-disc pl-5 text-slate-700">
-                        {result.analysis.formatting_tips.map((item, idx) => (
-                          <li key={`format-${idx}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {result.analysis.action_plan?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Action Plan
-                      </h3>
-                      <ul className="mt-2 list-disc pl-5 text-slate-700">
-                        {result.analysis.action_plan.map((item, idx) => (
-                          <li key={`action-${idx}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+
+            {result.analysis ? (
+              <div className="space-y-8">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(() => {
+                    const value = normalizeScore(result.overallScore);
+                    return (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-slate-700">
+                            Resume Score
+                          </p>
+                          <span className="text-lg font-bold text-slate-900">
+                            {value !== null ? `${value}/100` : "—"}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 rounded-full bg-slate-200">
+                          <div
+                            className="h-2 rounded-full bg-primary-600 transition-all"
+                            style={{ width: `${value ?? 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const value = normalizeScore(result.atsScore);
+                    return (
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-emerald-800">
+                            ATS Match Score
+                          </p>
+                          <span className="text-lg font-bold text-emerald-900">
+                            {value !== null ? `${value}/100` : "—"}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 rounded-full bg-emerald-100">
+                          <div
+                            className="h-2 rounded-full bg-emerald-500 transition-all"
+                            style={{ width: `${value ?? 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
-              ) : (
-                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                  {result.feedback}
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Summary
+                  </h3>
+                  <p className="mt-2 text-slate-700">
+                    {result.analysis.summary || "Summary not provided."}
+                  </p>
                 </div>
-              )}
-            </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Strengths
+                    </h3>
+                    {renderList(
+                      result.analysis.strengths,
+                      "No strengths returned yet."
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Improvements
+                    </h3>
+                    {renderList(
+                      result.analysis.improvements,
+                      "No improvements returned yet."
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Missing Keywords
+                    </h3>
+                    {renderChips(
+                      result.analysis.missing_keywords,
+                      "No missing keywords returned."
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Matching Keywords
+                    </h3>
+                    {renderChips(
+                      result.analysis.matching_keywords,
+                      "No matching keywords returned."
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Formatting Tips
+                    </h3>
+                    {renderList(
+                      result.analysis.formatting_tips,
+                      "No formatting tips returned."
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Action Plan
+                    </h3>
+                    {renderList(
+                      result.analysis.action_plan,
+                      "No action plan returned."
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                {result.feedback}
+              </div>
+            )}
           </div>
         )}
       </div>

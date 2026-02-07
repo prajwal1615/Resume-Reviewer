@@ -198,6 +198,7 @@ Schema:
 
 Rules:
 - Be specific, concise, and actionable.
+- Provide 3-5 items for strengths, improvements, missing_keywords, matching_keywords, formatting_tips, and action_plan.
 - If no job description is provided, set ats_score to null and missing/matching keywords to [].
 - Focus on changes that improve ATS compatibility and recruiter readability.
 
@@ -319,7 +320,7 @@ const generateWithGemini = async ({ resumeText, jobDescription }) => {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.4,
-      maxOutputTokens: 1200,
+      maxOutputTokens: 2000,
       responseMimeType: "application/json",
     },
   });

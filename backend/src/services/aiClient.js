@@ -25,7 +25,7 @@ const gemini =
     : null;
 
 const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 const clampInt = (value, min, max) => {
   const num = Number(value);
@@ -36,8 +36,55 @@ const clampInt = (value, min, max) => {
 const stripCodeFences = (text) =>
   text.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
 
+const extractBalancedJson = (text) => {
+  const cleaned = stripCodeFences(text);
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < cleaned.length; i += 1) {
+    const ch = cleaned[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (ch === "\\") {
+        escape = true;
+      } else if (ch === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (ch === "{") depth += 1;
+    if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        const slice = cleaned.slice(start, i + 1);
+        try {
+          return JSON.parse(slice);
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
 const extractJson = (text) => {
   if (!text) return null;
+  const balanced = extractBalancedJson(text);
+  if (balanced) return balanced;
+
   const cleaned = stripCodeFences(text);
   const first = cleaned.indexOf("{");
   const last = cleaned.lastIndexOf("}");
@@ -72,6 +119,36 @@ const normalizeAnalysis = (raw, hasJobDescription) => {
     matching_keywords: normalizeArray(raw.matching_keywords),
     formatting_tips: normalizeArray(raw.formatting_tips),
     action_plan: normalizeArray(raw.action_plan),
+  };
+};
+
+const extractLooseAnalysis = (text, hasJobDescription) => {
+  if (!text) return null;
+  const cleaned = text.replace(/\\"/g, "\"");
+  const overallMatch = cleaned.match(/"overall_score"\s*:\s*(\d+)/i);
+  const atsMatch = cleaned.match(/"ats_score"\s*:\s*(\d+)/i);
+  const overallScore = overallMatch ? clampInt(overallMatch[1], 0, 100) : null;
+  const atsScore = hasJobDescription
+    ? atsMatch
+      ? clampInt(atsMatch[1], 0, 100)
+      : null
+    : null;
+
+  if (overallScore === null && atsScore === null) return null;
+
+  const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]*)/i);
+  const summary = summaryMatch ? summaryMatch[1].trim() : "";
+
+  return {
+    overall_score: overallScore,
+    ats_score: atsScore,
+    summary,
+    strengths: [],
+    improvements: [],
+    missing_keywords: [],
+    matching_keywords: [],
+    formatting_tips: [],
+    action_plan: [],
   };
 };
 
@@ -131,6 +208,41 @@ JOB_DESCRIPTION:
 ${hasJobDescription ? jobDescription : "N/A"}`;
 };
 
+const extractResponseText = (response) => {
+  if (!response) return "";
+  if (response.output_text) return String(response.output_text).trim();
+  if (response.outputText) return String(response.outputText).trim();
+
+  const output = Array.isArray(response.output) ? response.output : [];
+  const chunks = [];
+  let refusal = "";
+
+  output.forEach((item) => {
+    if (item?.text) {
+      chunks.push(String(item.text));
+      return;
+    }
+    if (item?.type === "output_text" && item?.text) {
+      chunks.push(String(item.text));
+      return;
+    }
+    const content = Array.isArray(item?.content) ? item.content : [];
+    content.forEach((part) => {
+      if (part?.text) {
+        chunks.push(String(part.text));
+      } else if (part?.type === "output_text" && part?.text) {
+        chunks.push(String(part.text));
+      } else if (part?.type === "refusal" && part?.refusal) {
+        refusal = String(part.refusal);
+      }
+    });
+  });
+
+  if (chunks.length) return chunks.join("\n").trim();
+  if (refusal) return refusal.trim();
+  return "";
+};
+
 const generateWithOpenAI = async ({ resumeText, jobDescription }) => {
   if (!openai) {
     throw new Error("OpenAI client not configured.");
@@ -141,17 +253,56 @@ Return only valid JSON. Do not include markdown or code fences.`;
 
   const userPrompt = buildPrompt({ resumeText, jobDescription });
 
-  const completion = await openai.chat.completions.create({
-    model: DEFAULT_OPENAI_MODEL,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.5,
-    max_tokens: 900,
-  });
+  const isGpt5 = /^gpt-5/i.test(DEFAULT_OPENAI_MODEL);
+  let rawText = "";
 
-  const rawText = completion.choices[0]?.message?.content?.trim() || "";
+  if (isGpt5) {
+    const response = await openai.responses.create({
+      model: DEFAULT_OPENAI_MODEL,
+      input: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      reasoning: { effort: "minimal" },
+      max_output_tokens: 1200,
+      text: { format: { type: "json_object" } },
+    });
+    rawText = extractResponseText(response);
+    if (!rawText) {
+      console.error("[openai] empty response", {
+        id: response?.id,
+        output: response?.output,
+      });
+      // Fallback to Chat Completions for GPT-5 models if Responses returns no text.
+      const fallback = await openai.chat.completions.create({
+        model: DEFAULT_OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        reasoning: { effort: "minimal" },
+        response_format: { type: "json_object" },
+        max_completion_tokens: 900,
+      });
+      rawText = fallback.choices[0]?.message?.content?.trim() || "";
+    }
+  } else {
+    const completion = await openai.chat.completions.create({
+      model: DEFAULT_OPENAI_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.5,
+      response_format: { type: "json_object" },
+      max_tokens: 900,
+    });
+    rawText = completion.choices[0]?.message?.content?.trim() || "";
+  }
+
+  if (!rawText) {
+    throw new Error("OpenAI response was empty.");
+  }
   return { rawText, model: DEFAULT_OPENAI_MODEL, provider: "openai" };
 };
 
@@ -167,12 +318,27 @@ const generateWithGemini = async ({ resumeText, jobDescription }) => {
   const result = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.5,
-      maxOutputTokens: 900,
+      temperature: 0.4,
+      maxOutputTokens: 1200,
+      responseMimeType: "application/json",
     },
   });
 
-  const rawText = result?.response?.text?.() || "";
+  const candidate = result?.response?.candidates?.[0];
+  const parts = Array.isArray(candidate?.content?.parts)
+    ? candidate.content.parts
+    : [];
+  const rawText =
+    parts.map((part) => part?.text || "").join("").trim() ||
+    result?.response?.text?.() ||
+    "";
+
+  if (!rawText) {
+    console.error("[gemini] empty response", {
+      finishReason: candidate?.finishReason,
+      safetyRatings: candidate?.safetyRatings,
+    });
+  }
   return { rawText, model: DEFAULT_GEMINI_MODEL, provider: "gemini" };
 };
 
@@ -193,10 +359,10 @@ const generateAnalysis = async ({ resumeText, jobDescription }) => {
     jobDescription: trimmedJD,
   });
 
-  const analysis = normalizeAnalysis(
-    extractJson(rawText),
-    Boolean(trimmedJD)
-  );
+  let analysis = normalizeAnalysis(extractJson(rawText), Boolean(trimmedJD));
+  if (!analysis) {
+    analysis = extractLooseAnalysis(rawText, Boolean(trimmedJD));
+  }
   const feedback = analysis ? formatFeedback(analysis) : rawText || "";
 
   return {

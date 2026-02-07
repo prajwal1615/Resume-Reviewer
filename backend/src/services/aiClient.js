@@ -413,7 +413,7 @@ const generateAnalysis = async ({ resumeText, jobDescription }) => {
 
   const rawResume = resumeText.trim();
   const rawJD = jobDescription ? jobDescription.trim() : "";
-  const trimmedResume = rawResume.slice(0, 8000);
+  const trimmedResume = rawResume.slice(0, 12000);
   const trimmedJD = rawJD.slice(0, 8000);
   const shortResume = rawResume.slice(0, 6000);
   const shortJD = rawJD.slice(0, 3500);

@@ -1,15 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import api from "../api/axios";
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isAuth = !!localStorage.getItem("token");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [profile, setProfile] = useState({ name: "", avatarUrl: "" });
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  useEffect(() => {
+    if (!isAuth) return;
+    let isMounted = true;
+    api
+      .get("/users/me")
+      .then((res) => {
+        if (isMounted) {
+          setProfile({
+            name: res.data?.name || "",
+            avatarUrl: res.data?.avatarUrl || "",
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuth]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/";
+  };
+
+  const handleProfileClick = () => {
+    setShowProfileMenu(false);
+    navigate("/profile");
   };
 
   if (!isAuth) return null;
@@ -45,12 +73,50 @@ export default function Navbar() {
             >
               Resume Review
             </Link>
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="text-slate-600 hover:text-red-600 font-medium transition-colors"
-            >
-              Logout
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu((prev) => !prev)}
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100"
+                title="Profile"
+              >
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold text-slate-500">
+                    {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
+                  </span>
+                )}
+              </button>
+
+              {showProfileMenu && (
+                <div
+                  className="absolute right-0 mt-3 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={handleProfileClick}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowLogoutConfirm(true);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

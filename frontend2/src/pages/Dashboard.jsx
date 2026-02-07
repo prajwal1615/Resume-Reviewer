@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 import JobCard from "../components/JobCard";
 import StatsCard from "../components/StatsCard";
@@ -9,12 +9,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const didInit = useRef(false);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (query = "") => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/jobs");
+      const res = await api.get("/jobs", query ? { params: { q: query } } : {});
       setJobs(res.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load jobs");
@@ -24,8 +26,17 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    if (!didInit.current) {
+      didInit.current = true;
+      fetchJobs();
+      return;
+    }
+    const delay = searchTerm.trim() ? 1200 : 0;
+    const timer = setTimeout(() => {
+      fetchJobs(searchTerm.trim());
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const statusCount = (status) => jobs.filter((j) => j.status === status).length;
 
@@ -61,6 +72,38 @@ export default function Dashboard() {
           <StatsCard title="Rejected" count={statusCount("Rejected")} />
         </div>
 
+        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Search</p>
+              <p className="text-xs text-slate-500">
+                Find jobs by company, role, or description
+              </p>
+            </div>
+            <div className="relative w-full sm:max-w-md">
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-field w-full pl-10"
+                placeholder="Search by company or role..."
+              />
+              <svg
+                className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-4.35-4.35M16.65 10.5a6.15 6.15 0 11-12.3 0 6.15 6.15 0 0112.3 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
@@ -87,8 +130,8 @@ export default function Dashboard() {
               <JobCard
                 key={job._id}
                 job={job}
-                onUpdate={fetchJobs}
-                onDelete={fetchJobs}
+                onUpdate={() => fetchJobs(searchTerm.trim())}
+                onDelete={() => fetchJobs(searchTerm.trim())}
               />
             ))}
           </div>
@@ -98,7 +141,7 @@ export default function Dashboard() {
       {showAddModal && (
         <AddJobModal
           onClose={() => setShowAddModal(false)}
-          onSuccess={fetchJobs}
+          onSuccess={() => fetchJobs(searchTerm.trim())}
         />
       )}
     </div>

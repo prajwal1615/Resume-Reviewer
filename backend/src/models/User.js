@@ -10,7 +10,16 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    title: String,
+    location: String,
+    phone: String,
+    bio: String,
+    website: String,
+    linkedin: String,
+    github: String,
+    avatarUrl: String,
+    avatarPublicId: String
   },
   { timestamps: true }
 );

@@ -7,6 +7,7 @@ import Landing from "./pages/Landing";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ResumeReview from "./pages/ResumeReview";
+import Profile from "./pages/Profile";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -37,6 +38,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ResumeReview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

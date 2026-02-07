@@ -8,9 +8,13 @@ const resumeReviewSchema = new mongoose.Schema(
       required: true,
     },
     resumeText: { type: String, required: true },
+    jobDescription: String,
     fileName: String,
     feedback: { type: String, required: true },
     score: Number,
+    overallScore: Number,
+    atsScore: Number,
+    analysis: mongoose.Schema.Types.Mixed,
   },
   { timestamps: true }
 );

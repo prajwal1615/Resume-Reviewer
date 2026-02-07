@@ -7,16 +7,20 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [smtpMissing, setSmtpMissing] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSmtpMissing(false);
     setLoading(true);
     try {
       await api.post("/auth/forgot-password", { email });
       setSent(true);
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      const message = err.response?.data?.message || "Something went wrong";
+      setError(message);
+      setSmtpMissing(/email service is not configured/i.test(message));
     } finally {
       setLoading(false);
     }
@@ -62,6 +66,12 @@ export default function ForgotPassword() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {smtpMissing && (
+              <div className="p-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
+                Email delivery is not configured on the server. Ask the admin to set SMTP
+                settings, or check the server logs for a reset link.
+              </div>
+            )}
             {error && (
               <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm">
                 {error}

@@ -5,6 +5,7 @@ export default function ResumeReview() {
   const [mode, setMode] = useState("upload");
   const [file, setFile] = useState(null);
   const [text, setText] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -28,15 +29,24 @@ export default function ResumeReview() {
     setLoading(true);
 
     try {
+      if (jobDescription.trim().length < 50) {
+        setError("Please paste at least 50 characters of the job description");
+        setLoading(false);
+        return;
+      }
       if (mode === "upload" && file) {
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("jobDescription", jobDescription.trim());
         const res = await api.post("/resume/analyze", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         setResult(res.data);
       } else if (mode === "paste" && text.trim().length >= 50) {
-        const res = await api.post("/resume/analyze-text", { text: text.trim() });
+        const res = await api.post("/resume/analyze-text", {
+          text: text.trim(),
+          jobDescription: jobDescription.trim(),
+        });
         setResult(res.data);
       } else {
         setError(
@@ -99,6 +109,17 @@ export default function ResumeReview() {
         </div>
 
         <form onSubmit={handleSubmit} className="card p-8 mb-8">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Job Description
+            </label>
+            <textarea
+              className="input-field min-h-[160px] resize-y"
+              placeholder="Paste the job description here..."
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+            />
+          </div>
           {mode === "upload" ? (
             <div
               onClick={() => fileInputRef.current?.click()}
@@ -166,16 +187,107 @@ export default function ResumeReview() {
           <div className="card p-8 animate-slide-up">
             <div className="flex items-center gap-4 mb-6">
               <h2 className="text-xl font-bold text-slate-900">AI Feedback</h2>
-              {result.score && (
+              {result.overallScore !== null &&
+                result.overallScore !== undefined && (
                 <span className="px-4 py-2 rounded-xl bg-primary-100 text-primary-700 font-bold">
-                  Score: {result.score}/10
+                  Resume Score: {result.overallScore}/100
+                </span>
+              )}
+              {result.atsScore !== null && result.atsScore !== undefined && (
+                <span className="px-4 py-2 rounded-xl bg-emerald-100 text-emerald-700 font-bold">
+                  ATS Match: {result.atsScore}/100
                 </span>
               )}
             </div>
             <div className="prose prose-slate max-w-none">
-              <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
-                {result.feedback}
-              </div>
+              {result.analysis ? (
+                <div className="space-y-6">
+                  {result.analysis.summary && (
+                    <div className="text-slate-700">
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Summary
+                      </h3>
+                      <p className="mt-2">{result.analysis.summary}</p>
+                    </div>
+                  )}
+                  {result.analysis.strengths?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Strengths
+                      </h3>
+                      <ul className="mt-2 list-disc pl-5 text-slate-700">
+                        {result.analysis.strengths.map((item, idx) => (
+                          <li key={`strength-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.analysis.improvements?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Improvements
+                      </h3>
+                      <ul className="mt-2 list-disc pl-5 text-slate-700">
+                        {result.analysis.improvements.map((item, idx) => (
+                          <li key={`improve-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.analysis.missing_keywords?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Missing Keywords
+                      </h3>
+                      <ul className="mt-2 list-disc pl-5 text-slate-700">
+                        {result.analysis.missing_keywords.map((item, idx) => (
+                          <li key={`missing-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.analysis.matching_keywords?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Matching Keywords
+                      </h3>
+                      <ul className="mt-2 list-disc pl-5 text-slate-700">
+                        {result.analysis.matching_keywords.map((item, idx) => (
+                          <li key={`match-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.analysis.formatting_tips?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Formatting Tips
+                      </h3>
+                      <ul className="mt-2 list-disc pl-5 text-slate-700">
+                        {result.analysis.formatting_tips.map((item, idx) => (
+                          <li key={`format-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.analysis.action_plan?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Action Plan
+                      </h3>
+                      <ul className="mt-2 list-disc pl-5 text-slate-700">
+                        {result.analysis.action_plan.map((item, idx) => (
+                          <li key={`action-${idx}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                  {result.feedback}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -6,7 +6,12 @@ const crypto = require("crypto");
 const { sendPasswordResetEmail, smtpEnabled } = require("../services/mailer");
 
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, password } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
 
   const userExists = await User.findOne({ email });
   if (userExists) {
@@ -20,8 +25,10 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
 
+  if (!email) return res.status(400).json({ message: "Email is required" });
   const user = await User.findOne({ email });
   if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
@@ -38,7 +45,10 @@ exports.login = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
   const user = await User.findOne({ email });
   if (!user) {
     return res.status(200).json({ message: "If that email exists, we sent a reset link." });

@@ -1,6 +1,25 @@
 const ResumeReview = require("../models/ResumeReview");
-const pdfParse = require("pdf-parse");
-const parsePdf = pdfParse?.default || pdfParse;
+const pdfParseModule = require("pdf-parse");
+
+const extractPdfText = async (buffer) => {
+  if (typeof pdfParseModule === "function") {
+    const data = await pdfParseModule(buffer);
+    return data.text;
+  }
+
+  const PDFParseClass =
+    pdfParseModule?.PDFParse || pdfParseModule?.default?.PDFParse;
+  if (typeof PDFParseClass === "function") {
+    const parser = new PDFParseClass({ data: buffer });
+    const result = await parser.getText();
+    if (typeof parser.destroy === "function") {
+      await parser.destroy();
+    }
+    return result.text;
+  }
+
+  throw new Error("pdf-parse import failed: unsupported module shape");
+};
 const { generateAnalysis } = require("../services/aiClient");
 
 exports.analyzeResume = async (req, res) => {
@@ -11,8 +30,7 @@ exports.analyzeResume = async (req, res) => {
 
     if (req.file) {
       const buffer = req.file.buffer;
-      const data = await parsePdf(buffer);
-      resumeText = data.text;
+      resumeText = await extractPdfText(buffer);
     }
 
     if (!resumeText || resumeText.trim().length < 50) {

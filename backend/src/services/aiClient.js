@@ -125,7 +125,7 @@ const normalizeAnalysis = (raw, hasJobDescription) => {
 const isNonEmptyString = (value) =>
   typeof value === "string" && value.trim().length > 0;
 
-const validateList = (list, { min = 1 } = {}) => {
+const validateList = (list, { min = 3 } = {}) => {
   if (!Array.isArray(list)) return false;
   if (list.length < min) return false;
   return list.every(isNonEmptyString);
@@ -237,7 +237,7 @@ const buildPrompt = ({ resumeText, jobDescription, mode = "full" }) => {
   const hasJobDescription = Boolean(jobDescription?.trim());
   const extraRules =
     mode === "retry_short"
-      ? "- Keep summary to 1-2 sentences.\n- Keep each list item under 12 words."
+      ? "- Keep summary to 1-2 sentences.\n- Keep each list item under 12 words.\n- Do NOT return empty lists."
       : "";
   return `You are an expert career coach and ATS resume reviewer.
 Return ONLY valid JSON with the schema below. Do not include markdown or code fences.
@@ -258,7 +258,7 @@ Schema:
 Rules:
 - Be specific, concise, and actionable.
 - Provide 3-5 items for strengths, improvements, missing_keywords, matching_keywords, formatting_tips, and action_plan.
-- If there are truly no items, return ["No major issues found."] for that list.
+- Never return empty lists. If needed, infer reasonable items from the resume and job description.
 - If no job description is provided, set ats_score to null and missing/matching keywords to [].
 - Focus on changes that improve ATS compatibility and recruiter readability.
 ${extraRules}
@@ -326,7 +326,7 @@ Return only valid JSON. Do not include markdown or code fences.`;
         { role: "user", content: userPrompt },
       ],
       reasoning: { effort: "minimal" },
-      max_output_tokens: 1200,
+      max_output_tokens: 1600,
       text: { format: { type: "json_object" } },
     });
     rawText = extractResponseText(response);
@@ -344,7 +344,7 @@ Return only valid JSON. Do not include markdown or code fences.`;
         ],
         reasoning: { effort: "minimal" },
         response_format: { type: "json_object" },
-        max_completion_tokens: 900,
+      max_completion_tokens: 1200,
       });
       rawText = fallback.choices[0]?.message?.content?.trim() || "";
     }
@@ -357,7 +357,7 @@ Return only valid JSON. Do not include markdown or code fences.`;
       ],
       temperature: 0.5,
       response_format: { type: "json_object" },
-      max_tokens: 900,
+      max_tokens: 1200,
     });
     rawText = completion.choices[0]?.message?.content?.trim() || "";
   }
@@ -427,7 +427,11 @@ const generateAnalysis = async ({ resumeText, jobDescription }) => {
     mode: "full",
   });
 
-  let analysis = normalizeAnalysis(extractJson(rawText), hasJD);
+  let parsed = extractJson(rawText);
+  if (!parsed) {
+    parsed = extractLooseAnalysis(rawText, hasJD);
+  }
+  let analysis = normalizeAnalysis(parsed, hasJD);
   let validation = validateAnalysis(analysis, hasJD);
 
   if (!validation.valid) {
@@ -436,7 +440,11 @@ const generateAnalysis = async ({ resumeText, jobDescription }) => {
       jobDescription: shortJD,
       mode: "retry_short",
     });
-    analysis = normalizeAnalysis(extractJson(retry.rawText), hasJD);
+    let retryParsed = extractJson(retry.rawText);
+    if (!retryParsed) {
+      retryParsed = extractLooseAnalysis(retry.rawText, hasJD);
+    }
+    analysis = normalizeAnalysis(retryParsed, hasJD);
     validation = validateAnalysis(analysis, hasJD);
   }
 

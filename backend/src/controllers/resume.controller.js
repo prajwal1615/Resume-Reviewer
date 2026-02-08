@@ -1,4 +1,5 @@
 const ResumeReview = require("../models/ResumeReview");
+const User = require("../models/User");
 const pdfParseModule = require("pdf-parse");
 
 const extractPdfText = async (buffer) => {
@@ -24,6 +25,25 @@ const { generateAnalysis } = require("../services/aiClient");
 
 exports.analyzeResume = async (req, res) => {
   try {
+    const user = await User.findById(req.user.id).select("isPremium resumeReviewCount");
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    if (!user.isPremium) {
+      let used = Number.isFinite(user.resumeReviewCount) ? user.resumeReviewCount : 0;
+      if (!Number.isFinite(user.resumeReviewCount)) {
+        used = await ResumeReview.countDocuments({ userId: req.user.id });
+        user.resumeReviewCount = used;
+        await user.save();
+      }
+      if (used >= 1) {
+        return res.status(402).json({
+          message: "Free resume review limit reached. Please upgrade to Premium.",
+          requiresPremium: true,
+        });
+      }
+    }
+
     let resumeText = req.body.text || "";
     const jobDescription =
       req.body.jobDescription || req.body.job_description || "";
@@ -59,6 +79,10 @@ exports.analyzeResume = async (req, res) => {
       analysis,
     });
 
+    if (!user.isPremium) {
+      await User.findByIdAndUpdate(req.user.id, { $inc: { resumeReviewCount: 1 } });
+    }
+
     res.json({
       feedback,
       score: overallScore,
@@ -66,6 +90,7 @@ exports.analyzeResume = async (req, res) => {
       atsScore,
       analysis,
       reviewId: review._id,
+      remainingFreeReviews: user.isPremium ? null : 0,
     });
   } catch (err) {
     console.error("Resume analysis error:", err);

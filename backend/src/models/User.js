@@ -29,6 +29,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["en", "hi", "kn"],
       default: "en"
+    },
+    isPremium: {
+      type: Boolean,
+      default: false
+    },
+    resumeReviewCount: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }

@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "resumeReview": "ರೆಸ್ಯೂಮೆ ವಿಮರ್ಶೆ",
+    "notifications": "ಅಧಿಸೂಚನೆಗಳು",
+    "markAllRead": "ಎಲ್ಲವನ್ನು ಓದಿದಂತೆ ಗುರುತಿಸಿ",
+    "noNotifications": "ಈಗ ಯಾವುದೇ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ.",
+    "profile": "ಪ್ರೊಫೈಲ್",
+    "logout": "ಲಾಗ್ ಔಟ್",
+    "signOutTitle": "ಸೈನ್ ಔಟ್ ಮಾಡಲಾ?",
+    "signOutBody": "ನೀವು ಖಚಿತವಾಗಿ ಸೈನ್ ಔಟ್ ಮಾಡಲಿಚ್ಚಿಸುತ್ತೀರಾ?",
+    "cancel": "ರದ್ದು",
+    "signOut": "ಸೈನ್ ಔಟ್",
+    "language": "ಭಾಷೆ"
+  }
+}

@@ -6,6 +6,7 @@ const {
   updateProfile,
   uploadAvatar,
   updateThemePreference,
+  updateLanguagePreference,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.use(auth);
 router.get("/me", getMe);
 router.put("/me", updateProfile);
 router.put("/me/theme", updateThemePreference);
+router.put("/me/language", updateLanguagePreference);
 router.post("/me/avatar", (req, res, next) => {
   upload.single("avatar")(req, res, (err) => {
     if (err) {

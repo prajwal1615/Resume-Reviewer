@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "resumeReview": "Resume Review",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all read",
+    "noNotifications": "No notifications yet.",
+    "profile": "Profile",
+    "logout": "Logout",
+    "signOutTitle": "Sign out?",
+    "signOutBody": "Are you sure you want to sign out?",
+    "cancel": "Cancel",
+    "signOut": "Sign out",
+    "language": "Language"
+  }
+}

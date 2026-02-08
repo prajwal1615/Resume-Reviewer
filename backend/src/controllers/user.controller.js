@@ -47,6 +47,21 @@ exports.updateThemePreference = async (req, res) => {
   res.json({ themePreference: user.themePreference });
 };
 
+exports.updateLanguagePreference = async (req, res) => {
+  const language = String(req.body?.language || "").toLowerCase();
+  if (!["en", "hi", "kn"].includes(language)) {
+    return res.status(400).json({ message: "Invalid language preference." });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { languagePreference: language },
+    { new: true }
+  ).select("-password");
+
+  res.json({ languagePreference: user.languagePreference });
+};
+
 exports.uploadAvatar = async (req, res) => {
   if (!hasCloudinary) {
     return res.status(503).json({

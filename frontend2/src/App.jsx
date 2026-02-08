@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
+import i18n from "./i18n";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,6 +22,9 @@ function App() {
   useEffect(() => {
     const hasToken = !!localStorage.getItem("token");
     if (hasToken) return;
+
+    const storedLanguage = localStorage.getItem("language") || "en";
+    i18n.changeLanguage(storedLanguage);
 
     const stored = localStorage.getItem("theme");
     if (stored === "dark" || stored === "light") {

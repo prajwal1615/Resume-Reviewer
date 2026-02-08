@@ -3,13 +3,20 @@ import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useNotifications } from "../context/NotificationsContext";
+import { useTranslation } from "react-i18next";
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAuth = !!localStorage.getItem("token");
+  const { t, i18n } = useTranslation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [profile, setProfile] = useState({ name: "", avatarUrl: "", themePreference: "light" });
+  const [profile, setProfile] = useState({
+    name: "",
+    avatarUrl: "",
+    themePreference: "light",
+    languagePreference: "en",
+  });
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [profilePinned, setProfilePinned] = useState(false);
@@ -36,11 +43,15 @@ export default function Navbar() {
             name: res.data?.name || "",
             avatarUrl: res.data?.avatarUrl || "",
             themePreference: res.data?.themePreference || "light",
+            languagePreference: res.data?.languagePreference || "en",
           });
           const preferred = res.data?.themePreference === "dark" ? "dark" : "light";
           setTheme(preferred);
+          const preferredLanguage = res.data?.languagePreference || "en";
+          i18n.changeLanguage(preferredLanguage);
           if (typeof window !== "undefined") {
             localStorage.setItem("theme", preferred);
+            localStorage.setItem("language", preferredLanguage);
           }
         }
       })
@@ -124,7 +135,7 @@ export default function Navbar() {
                   : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
               }`}
             >
-              Dashboard
+              {t("nav.dashboard")}
             </Link>
             <Link
               to="/resume-review"
@@ -134,7 +145,7 @@ export default function Navbar() {
                   : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
               }`}
             >
-              Resume Review
+              {t("nav.resumeReview")}
             </Link>
             <button
               type="button"
@@ -183,7 +194,7 @@ export default function Navbar() {
                   setNotificationsPinned(true);
                 }}
                 className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:text-white"
-                title="Notifications"
+                title={t("nav.notifications")}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
@@ -197,18 +208,20 @@ export default function Navbar() {
               {showNotifications && (
                 <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Notifications</p>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {t("nav.notifications")}
+                    </p>
                     <button
                       onClick={() => markAllRead()}
                       className="text-xs text-primary-600 hover:text-primary-700"
                     >
-                      Mark all read
+                      {t("nav.markAllRead")}
                     </button>
                   </div>
                   <div className="max-h-72 overflow-auto">
                     {notifications.length === 0 ? (
                       <p className="p-4 text-sm text-slate-500 dark:text-slate-400">
-                        No notifications yet.
+                        {t("nav.noNotifications")}
                       </p>
                     ) : (
                       notifications.map((note) => (
@@ -281,7 +294,7 @@ export default function Navbar() {
                     onClick={handleProfileClick}
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    Profile
+                    {t("nav.profile")}
                   </button>
                   <button
                     type="button"
@@ -291,7 +304,7 @@ export default function Navbar() {
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
-                    Logout
+                    {t("nav.logout")}
                   </button>
                 </div>
               )}
@@ -309,20 +322,20 @@ export default function Navbar() {
               aria-hidden="true"
             />
             <div className="relative bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-auto">
-              <p className="text-slate-800 font-medium mb-1">Sign out?</p>
-              <p className="text-slate-500 text-sm mb-6">Are you sure you want to sign out?</p>
+              <p className="text-slate-800 font-medium mb-1">{t("nav.signOutTitle")}</p>
+              <p className="text-slate-500 text-sm mb-6">{t("nav.signOutBody")}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLogoutConfirm(false)}
                   className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  {t("nav.cancel")}
                 </button>
                 <button
                   onClick={handleLogout}
                   className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
                 >
-                  Sign out
+                  {t("nav.signOut")}
                 </button>
               </div>
             </div>

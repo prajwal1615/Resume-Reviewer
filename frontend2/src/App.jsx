@@ -20,12 +20,16 @@ function ProtectedRoute({ children }) {
 function App() {
   useEffect(() => {
     const hasToken = !!localStorage.getItem("token");
-    if (hasToken) {
+    if (hasToken) return;
+
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark" || stored === "light") {
+      document.documentElement.classList.toggle("dark", stored === "dark");
       return;
     }
-    const stored = localStorage.getItem("theme");
-    const isDark = stored === "dark";
-    document.documentElement.classList.toggle("dark", isDark);
+
+    const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+    document.documentElement.classList.toggle("dark", prefersDark);
   }, []);
 
   return (

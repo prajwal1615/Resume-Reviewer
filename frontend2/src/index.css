@@ -19,6 +19,24 @@
   .dark .bg-slate-50 { background-color: #020617; }
   .dark .bg-slate-100 { background-color: #0b1220; }
   .dark .border-slate-200 { border-color: #1e293b; }
+  .dark .input-field {
+    background-color: #0f172a;
+    border-color: #1e293b;
+    color: #f8fafc;
+  }
+  .dark .input-field::placeholder {
+    color: #64748b;
+  }
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill,
+  .dark textarea:-webkit-autofill:hover,
+  .dark textarea:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f8fafc;
+    box-shadow: 0 0 0 1000px #0f172a inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 @layer components {

@@ -35,8 +35,8 @@ export default function StatsCard({ title, count, icon }) {
     <div className="card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-slate-500 font-medium text-sm">{title}</p>
-          <p className="text-3xl font-bold text-slate-900 mt-1">{count}</p>
+          <p className="text-slate-500 font-medium text-sm dark:text-slate-400">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 mt-1 dark:text-white">{count}</p>
         </div>
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${bg} flex items-center justify-center text-white shadow-lg`}>
           {icon || icons[title] || (

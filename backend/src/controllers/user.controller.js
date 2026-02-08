@@ -32,6 +32,21 @@ exports.updateProfile = async (req, res) => {
   res.json(user);
 };
 
+exports.updateThemePreference = async (req, res) => {
+  const theme = String(req.body?.theme || "").toLowerCase();
+  if (!["light", "dark"].includes(theme)) {
+    return res.status(400).json({ message: "Invalid theme preference." });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { themePreference: theme },
+    { new: true }
+  ).select("-password");
+
+  res.json({ themePreference: user.themePreference });
+};
+
 exports.uploadAvatar = async (req, res) => {
   if (!hasCloudinary) {
     return res.status(503).json({

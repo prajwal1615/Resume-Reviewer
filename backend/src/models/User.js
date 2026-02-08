@@ -19,7 +19,12 @@ const userSchema = new mongoose.Schema(
     linkedin: String,
     github: String,
     avatarUrl: String,
-    avatarPublicId: String
+    avatarPublicId: String,
+    themePreference: {
+      type: String,
+      enum: ["light", "dark"],
+      default: "light"
+    }
   },
   { timestamps: true }
 );

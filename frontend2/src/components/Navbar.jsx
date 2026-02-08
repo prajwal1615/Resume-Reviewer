@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -9,9 +9,19 @@ export default function Navbar() {
   const navigate = useNavigate();
   const isAuth = !!localStorage.getItem("token");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [profile, setProfile] = useState({ name: "", avatarUrl: "" });
+  const [profile, setProfile] = useState({ name: "", avatarUrl: "", themePreference: "light" });
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [profilePinned, setProfilePinned] = useState(false);
+  const [notificationsPinned, setNotificationsPinned] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "light";
+    return localStorage.getItem("theme") || "light";
+  });
+  const profileRef = useRef(null);
+  const notificationsRef = useRef(null);
+  const profileTimerRef = useRef(null);
+  const notificationsTimerRef = useRef(null);
   const { notifications, unreadCount, markAllRead, markRead } =
     useNotifications();
 
@@ -25,7 +35,13 @@ export default function Navbar() {
           setProfile({
             name: res.data?.name || "",
             avatarUrl: res.data?.avatarUrl || "",
+            themePreference: res.data?.themePreference || "light",
           });
+          const preferred = res.data?.themePreference === "dark" ? "dark" : "light";
+          setTheme(preferred);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("theme", preferred);
+          }
         }
       })
       .catch(() => {});
@@ -34,6 +50,13 @@ export default function Navbar() {
     };
   }, [isAuth]);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("theme", theme);
+    }
+  }, [theme]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/";
@@ -41,13 +64,49 @@ export default function Navbar() {
 
   const handleProfileClick = () => {
     setShowProfileMenu(false);
+    setProfilePinned(false);
     navigate("/profile");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const profileEl = profileRef.current;
+      const notifyEl = notificationsRef.current;
+      const clickedProfile = profileEl && profileEl.contains(event.target);
+      const clickedNotify = notifyEl && notifyEl.contains(event.target);
+      if (!clickedProfile) {
+        setShowProfileMenu(false);
+        setProfilePinned(false);
+      }
+      if (!clickedNotify) {
+        setShowNotifications(false);
+        setNotificationsPinned(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const clearProfileTimer = () => {
+    if (profileTimerRef.current) {
+      clearTimeout(profileTimerRef.current);
+      profileTimerRef.current = null;
+    }
+  };
+
+  const clearNotificationsTimer = () => {
+    if (notificationsTimerRef.current) {
+      clearTimeout(notificationsTimerRef.current);
+      notificationsTimerRef.current = null;
+    }
   };
 
   if (!isAuth) return null;
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/80">
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 dark:bg-slate-950/80 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link to="/dashboard" className="flex items-center gap-2">
@@ -62,7 +121,7 @@ export default function Navbar() {
               className={`font-medium transition-colors ${
                 location.pathname === "/dashboard"
                   ? "text-primary-600"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
               }`}
             >
               Dashboard
@@ -72,16 +131,58 @@ export default function Navbar() {
               className={`font-medium transition-colors ${
                 location.pathname === "/resume-review"
                   ? "text-primary-600"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
               }`}
             >
               Resume Review
             </Link>
-            <div className="relative">
+            <button
+              type="button"
+              onClick={async () => {
+                const next = theme === "dark" ? "light" : "dark";
+                setTheme(next);
+                try {
+                  await api.put("/users/me/theme", { theme: next });
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:text-white"
+              title="Toggle theme"
+            >
+              {theme === "dark" ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414M16.95 16.95l1.414 1.414M7.05 7.05 5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
+                </svg>
+              )}
+            </button>
+            <div
+              className="relative"
+              ref={notificationsRef}
+              onMouseEnter={() => {
+                clearNotificationsTimer();
+                setShowNotifications(true);
+              }}
+              onMouseLeave={() => {
+                if (!notificationsPinned) {
+                  clearNotificationsTimer();
+                  notificationsTimerRef.current = setTimeout(() => {
+                    setShowNotifications(false);
+                  }, 180);
+                }
+              }}
+            >
               <button
                 type="button"
-                onClick={() => setShowNotifications((prev) => !prev)}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                onClick={() => {
+                  setShowNotifications(true);
+                  setNotificationsPinned(true);
+                }}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:text-white"
                 title="Notifications"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,9 +195,9 @@ export default function Navbar() {
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-slate-700">Notifications</p>
+                <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Notifications</p>
                     <button
                       onClick={() => markAllRead()}
                       className="text-xs text-primary-600 hover:text-primary-700"
@@ -106,7 +207,7 @@ export default function Navbar() {
                   </div>
                   <div className="max-h-72 overflow-auto">
                     {notifications.length === 0 ? (
-                      <p className="p-4 text-sm text-slate-500">
+                      <p className="p-4 text-sm text-slate-500 dark:text-slate-400">
                         No notifications yet.
                       </p>
                     ) : (
@@ -114,15 +215,15 @@ export default function Navbar() {
                         <button
                           key={note.id}
                           onClick={() => markRead(note.id)}
-                          className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${
-                            note.read ? "bg-white" : "bg-primary-50/40"
+                          className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 ${
+                            note.read ? "bg-white dark:bg-slate-900" : "bg-primary-50/40 dark:bg-primary-900/30"
                           }`}
                         >
-                          <p className="text-sm font-medium text-slate-800">
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                             {note.title}
                           </p>
                           {note.message && (
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-slate-500 mt-1 dark:text-slate-400">
                               {note.message}
                             </p>
                           )}
@@ -133,11 +234,29 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            <div className="relative">
+            <div
+              className="relative"
+              ref={profileRef}
+              onMouseEnter={() => {
+                clearProfileTimer();
+                setShowProfileMenu(true);
+              }}
+              onMouseLeave={() => {
+                if (!profilePinned) {
+                  clearProfileTimer();
+                  profileTimerRef.current = setTimeout(() => {
+                    setShowProfileMenu(false);
+                  }, 180);
+                }
+              }}
+            >
               <button
                 type="button"
-                onClick={() => setShowProfileMenu((prev) => !prev)}
-                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100"
+                onClick={() => {
+                  setShowProfileMenu(true);
+                  setProfilePinned(true);
+                }}
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:bg-slate-800 dark:border-slate-700"
                 title="Profile"
               >
                 {profile.avatarUrl ? (
@@ -155,12 +274,12 @@ export default function Navbar() {
 
               {showProfileMenu && (
                 <div
-                  className="absolute right-0 mt-3 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                  className="absolute right-0 mt-3 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900"
                 >
                   <button
                     type="button"
                     onClick={handleProfileClick}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Profile
                   </button>
@@ -170,7 +289,7 @@ export default function Navbar() {
                       setShowProfileMenu(false);
                       setShowLogoutConfirm(true);
                     }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     Logout
                   </button>

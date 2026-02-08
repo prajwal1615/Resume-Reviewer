@@ -59,7 +59,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
-      <div className="relative card p-6 w-full max-w-md animate-slide-up">
+      <div className="relative card p-5 w-full max-w-md animate-slide-up max-h-[90vh] overflow-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-slate-900">Add Job Application</h2>
           <button
@@ -72,7 +72,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-2">
           {error && (
             <p className="text-red-600 text-sm bg-red-50 p-3 rounded-xl">{error}</p>
           )}
@@ -91,7 +91,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
             required
           />
           <textarea
-            className="input-field min-h-[60px] resize-none"
+            className="input-field min-h-[44px] resize-none"
             placeholder="Job description (optional)"
             value={form.jobDescription}
             onChange={(e) =>
@@ -99,7 +99,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
             }
           />
           <textarea
-            className="input-field min-h-[60px] resize-none"
+            className="input-field min-h-[44px] resize-none"
             placeholder="Notes (optional)"
             value={form.notes}
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -114,30 +114,32 @@ export default function AddJobModal({ onClose, onSuccess }) {
             <option value="Offer">Offer</option>
             <option value="Rejected">Rejected</option>
           </select>
-          <input
-            type="date"
-            className="input-field"
-            value={form.appliedDate}
-            onChange={(e) => setForm((f) => ({ ...f, appliedDate: e.target.value }))}
-          />
-          <input
-            type="date"
-            className="input-field"
-            value={form.interviewDate}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, interviewDate: e.target.value }))
-            }
-            placeholder="Interview date (optional)"
-          />
-          <input
-            type="date"
-            className="input-field"
-            value={form.reminderAt}
-            onChange={(e) => setForm((f) => ({ ...f, reminderAt: e.target.value }))}
-            placeholder="Reminder date (optional)"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              type="date"
+              className="input-field"
+              value={form.appliedDate}
+              onChange={(e) => setForm((f) => ({ ...f, appliedDate: e.target.value }))}
+            />
+            <input
+              type="date"
+              className="input-field"
+              value={form.interviewDate}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, interviewDate: e.target.value }))
+              }
+              placeholder="Interview date (optional)"
+            />
+            <input
+              type="date"
+              className="input-field"
+              value={form.reminderAt}
+              onChange={(e) => setForm((f) => ({ ...f, reminderAt: e.target.value }))}
+              placeholder="Reminder date (optional)"
+            />
+          </div>
           <textarea
-            className="input-field min-h-[60px] resize-none"
+            className="input-field min-h-[44px] resize-none"
             placeholder="Checklist (one item per line)"
             value={form.checklistText}
             onChange={(e) =>

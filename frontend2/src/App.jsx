@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -17,6 +18,16 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
+  useEffect(() => {
+    const hasToken = !!localStorage.getItem("token");
+    if (hasToken) {
+      return;
+    }
+    const stored = localStorage.getItem("theme");
+    const isDark = stored === "dark";
+    document.documentElement.classList.toggle("dark", isDark);
+  }, []);
+
   return (
     <NotificationsProvider>
       <BrowserRouter>

@@ -158,12 +158,12 @@ export default function Dashboard() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-600 mt-1">Track and manage your job applications</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
+            <p className="text-slate-600 mt-1 dark:text-slate-300">Track and manage your job applications</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -189,11 +189,11 @@ export default function Dashboard() {
           <StatsCard title="Rejected" count={statusCount("Rejected")} />
         </div>
 
-        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-700">Search</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Search</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Find jobs by company, role, or description
               </p>
             </div>
@@ -228,8 +228,8 @@ export default function Dashboard() {
               onClick={() => setViewMode(mode)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 viewMode === mode
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                  ? "bg-slate-900 text-white border-slate-900 dark:bg-primary-600 dark:border-primary-600"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:border-slate-600"
               }`}
             >
               {mode === "list"

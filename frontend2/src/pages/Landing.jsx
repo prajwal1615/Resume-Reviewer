@@ -9,7 +9,7 @@ export default function Landing() {
           AI-Powered Job Tracking
         </div>
         <h1 className="text-5xl sm:text-6xl font-bold text-white tracking-tight max-w-3xl">
-          Land your dream job with{" "}
+          Laund your dream job with{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-200">
             JobFlow
           </span>

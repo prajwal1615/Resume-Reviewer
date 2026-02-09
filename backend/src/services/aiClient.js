@@ -364,7 +364,7 @@ Return only valid JSON. Do not include markdown or code fences.`;
         ],
         reasoning: { effort: "minimal" },
         response_format: { type: "json_object" },
-      max_completion_tokens: 1200,
+        max_completion_tokens: 1200,
       });
       rawText = fallback.choices[0]?.message?.content?.trim() || "";
     }
@@ -400,8 +400,10 @@ const generateWithGemini = async ({ resumeText, jobDescription, mode }) => {
   const result = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: 2000,
+      temperature: 0.8,        // Higher creativity for detailed responses
+      topP: 0.95,             // Better diversity
+      topK: 40,               // More varied token selection
+      maxOutputTokens: 3192,  // Allow longer, detailed responses
       responseMimeType: "application/json",
     },
   });

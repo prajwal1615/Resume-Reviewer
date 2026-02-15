@@ -1,6 +1,30 @@
 const Job = require("../models/Job");
+const User = require("../models/User");
+
+const FREE_JOB_LIMIT = 10;
 
 exports.createJob = async (req, res) => {
+  const user = await User.findById(req.user.id).select("role isPremium premiumUntil");
+  if (!user) {
+    return res.status(404).json({ message: "User not found." });
+  }
+
+  const isAdmin = user.role === "admin";
+  const premiumActive =
+    user.isPremium && (!user.premiumUntil || user.premiumUntil > new Date());
+
+  if (!isAdmin && !premiumActive) {
+    const count = await Job.countDocuments({ userId: req.user.id });
+    if (count >= FREE_JOB_LIMIT) {
+      return res.status(402).json({
+        message: `Free job limit reached (${FREE_JOB_LIMIT}). Upgrade to Premium for unlimited jobs.`,
+        requiresPremium: true,
+        reason: "job_limit_reached",
+        freeJobLimit: FREE_JOB_LIMIT,
+      });
+    }
+  }
+
   const company = String(req.body.company || "").trim();
   const role = String(req.body.role || "").trim();
   if (company && role) {

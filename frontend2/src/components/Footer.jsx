@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { useFeatureFlags } from "../context/FeatureFlagsContext";
 
 export default function Footer() {
+  const { isEnabled } = useFeatureFlags();
+
   return (
     <footer className="relative mt-16 border-t border-slate-200 bg-slate-900 text-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -41,8 +44,12 @@ export default function Footer() {
             <p className="text-sm font-semibold text-white mb-3">Product</p>
             <ul className="space-y-2 text-sm text-slate-400">
               <li><Link to="/dashboard" className="hover:text-white">Job Tracker</Link></li>
-              <li><Link to="/resume-review" className="hover:text-white">Resume Review</Link></li>
-              <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
+              {isEnabled("resume_review") && (
+                <li><Link to="/resume-review" className="hover:text-white">Resume Review</Link></li>
+              )}
+              {isEnabled("premium_pricing") && (
+                <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
+              )}
             </ul>
           </div>
 

@@ -1,11 +1,15 @@
 import { useState } from "react";
 import api from "../api/axios";
 import { useNotifications } from "../context/NotificationsContext";
+import { useFeatureFlags } from "../context/FeatureFlagsContext";
+import { Link } from "react-router-dom";
 
 export default function AddJobModal({ onClose, onSuccess }) {
   const { addNotification } = useNotifications();
+  const { isEnabled } = useFeatureFlags();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [premiumRequired, setPremiumRequired] = useState(false);
   const [form, setForm] = useState({
     company: "",
     role: "",
@@ -21,6 +25,7 @@ export default function AddJobModal({ onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setPremiumRequired(false);
     setLoading(true);
     try {
       await api.post("/jobs", {
@@ -47,6 +52,9 @@ export default function AddJobModal({ onClose, onSuccess }) {
     } catch (err) {
       const message = err.response?.data?.message || "Failed to add job";
       setError(message);
+      if (err.response?.status === 402 && err.response?.data?.requiresPremium) {
+        setPremiumRequired(true);
+      }
       addNotification({ title: "Add failed", message, type: "error" });
     } finally {
       setLoading(false);
@@ -74,7 +82,14 @@ export default function AddJobModal({ onClose, onSuccess }) {
 
         <form onSubmit={handleSubmit} className="space-y-2">
           {error && (
-            <p className="text-red-600 text-sm bg-red-50 p-3 rounded-xl">{error}</p>
+            <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl space-y-2">
+              <p>{error}</p>
+              {premiumRequired && isEnabled("premium_pricing") && (
+                <Link to="/pricing" className="inline-flex text-xs font-semibold text-primary-700 hover:text-primary-800">
+                  Upgrade to Premium
+                </Link>
+              )}
+            </div>
           )}
           <input
             className="input-field"

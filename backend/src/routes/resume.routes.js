@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const auth = require("../middleware/auth.middleware");
+const requireFeatureFlag = require("../middleware/featureFlag.middleware");
 const { analyzeResume, getReviews } = require("../controllers/resume.controller");
 
 const router = express.Router();
@@ -18,7 +19,7 @@ const upload = multer({
 
 router.use(auth);
 
-router.post("/analyze", (req, res, next) => {
+router.post("/analyze", requireFeatureFlag("resume_review"), (req, res, next) => {
   upload.single("file")(req, res, (err) => {
     if (err) {
       return res.status(400).json({ message: err.message || "File upload failed" });
@@ -26,7 +27,7 @@ router.post("/analyze", (req, res, next) => {
     next();
   });
 }, analyzeResume);
-router.post("/analyze-text", analyzeResume);
-router.get("/reviews", getReviews);
+router.post("/analyze-text", requireFeatureFlag("resume_review"), analyzeResume);
+router.get("/reviews", requireFeatureFlag("resume_review"), getReviews);
 
 module.exports = router;

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useFeatureFlags } from "../context/FeatureFlagsContext";
 
 export default function PaymentSuccess() {
   const [status, setStatus] = useState("activating");
   const [message, setMessage] = useState("");
+  const { isEnabled } = useFeatureFlags();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -30,9 +32,15 @@ export default function PaymentSuccess() {
         <p className="text-slate-600 mt-2 dark:text-slate-300">
           {status === "activating" ? "Activating premium..." : message}
         </p>
-        <Link to="/resume-review" className="btn-primary inline-flex mt-6">
-          Go to Resume Review
-        </Link>
+        {isEnabled("resume_review") ? (
+          <Link to="/resume-review" className="btn-primary inline-flex mt-6">
+            Go to Resume Review
+          </Link>
+        ) : (
+          <Link to="/dashboard" className="btn-primary inline-flex mt-6">
+            Go to Dashboard
+          </Link>
+        )}
       </div>
     </div>
   );

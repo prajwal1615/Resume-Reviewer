@@ -25,14 +25,17 @@ const { generateAnalysis } = require("../services/aiClient");
 
 exports.analyzeResume = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("isPremium premiumUntil resumeReviewCount");
+    const user = await User.findById(req.user.id).select(
+      "role isPremium premiumUntil resumeReviewCount"
+    );
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
+    const isAdmin = user.role === "admin";
     const now = new Date();
     const premiumActive =
       user.isPremium && (!user.premiumUntil || user.premiumUntil > now);
-    if (!premiumActive) {
+    if (!premiumActive && !isAdmin) {
       let used = Number.isFinite(user.resumeReviewCount) ? user.resumeReviewCount : 0;
       if (!Number.isFinite(user.resumeReviewCount)) {
         used = await ResumeReview.countDocuments({ userId: req.user.id });
@@ -82,7 +85,7 @@ exports.analyzeResume = async (req, res) => {
       analysis,
     });
 
-    if (!user.isPremium) {
+    if (!premiumActive && !isAdmin) {
       await User.findByIdAndUpdate(req.user.id, { $inc: { resumeReviewCount: 1 } });
     }
 
@@ -93,7 +96,7 @@ exports.analyzeResume = async (req, res) => {
       atsScore,
       analysis,
       reviewId: review._id,
-      remainingFreeReviews: user.isPremium ? null : 0,
+      remainingFreeReviews: premiumActive || isAdmin ? null : 0,
     });
   } catch (err) {
     console.error("Resume analysis error:", err);

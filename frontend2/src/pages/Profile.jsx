@@ -135,10 +135,16 @@ export default function Profile() {
               <h2 className="mt-4 text-lg font-semibold text-slate-900">
                 {profile.name || "Your Name"}
               </h2>
-              {profile.isPremium && (
-                <span className="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  Premium
+              {profile.role === "admin" ? (
+                <span className="mt-2 inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                  Admin
                 </span>
+              ) : (
+                profile.isPremium && (
+                  <span className="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Premium
+                  </span>
+                )
               )}
               <p className="text-sm text-slate-500">
                 {profile.title || "Add a title"}

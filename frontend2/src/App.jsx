@@ -17,8 +17,10 @@ import Help from "./pages/Help";
 import AdminUsers from "./pages/AdminUsers";
 import api from "./api/axios";
 import { NotificationsProvider } from "./context/NotificationsContext";
+import { FeatureFlagsProvider, useFeatureFlags } from "./context/FeatureFlagsContext";
 import Footer from "./components/Footer";
 import ChatWidget from "./components/ChatWidget";
+import AdminFeatureFlags from "./pages/AdminFeatureFlags";
 
 const isAuthenticated = () => !!localStorage.getItem("token");
 
@@ -59,6 +61,22 @@ function AdminRoute({ children }) {
   return allowed ? children : <Navigate to="/dashboard" replace />;
 }
 
+function FeatureRoute({ flag, children }) {
+  const { loading, isEnabled } = useFeatureFlags();
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500">Loading features...</div>;
+  }
+
+  return isEnabled(flag) ? children : <Navigate to="/dashboard" replace />;
+}
+
+function FeatureWidgetGate() {
+  const { loading, isEnabled } = useFeatureFlags();
+  if (loading || !isEnabled("chat_widget")) return null;
+  return <ChatWidget />;
+}
+
 function ScrollToTop() {
   const location = useLocation();
   useEffect(() => {
@@ -87,10 +105,11 @@ function App() {
 
   return (
     <NotificationsProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <Navbar />
-        <Routes>
+      <FeatureFlagsProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <Navbar />
+          <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -100,7 +119,9 @@ function App() {
             path="/pricing"
             element={
               <ProtectedRoute>
-                <Pricing />
+                <FeatureRoute flag="premium_pricing">
+                  <Pricing />
+                </FeatureRoute>
               </ProtectedRoute>
             }
           />
@@ -124,7 +145,9 @@ function App() {
             path="/resume-review"
             element={
               <ProtectedRoute>
-                <ResumeReview />
+                <FeatureRoute flag="resume_review">
+                  <ResumeReview />
+                </FeatureRoute>
               </ProtectedRoute>
             }
           />
@@ -154,10 +177,21 @@ function App() {
               </ProtectedRoute>
             }
           />
-        </Routes>
-        <ChatWidget />
-        <Footer />
-      </BrowserRouter>
+          <Route
+            path="/admin/feature-flags"
+            element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminFeatureFlags />
+                </AdminRoute>
+              </ProtectedRoute>
+            }
+          />
+          </Routes>
+          <FeatureWidgetGate />
+          <Footer />
+        </BrowserRouter>
+      </FeatureFlagsProvider>
     </NotificationsProvider>
   );
 }

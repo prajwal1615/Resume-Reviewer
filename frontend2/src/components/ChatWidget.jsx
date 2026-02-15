@@ -1,6 +1,7 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import Lottie from "lottie-react";
 import chatbotAnimation from "../assets/Hello Chat Bot.json";
+import { useFeatureFlags } from "../context/FeatureFlagsContext";
 
 const FAQ_TREE = [
   {
@@ -94,6 +95,8 @@ const FAQ_TREE = [
 const getNode = (id) => FAQ_TREE.find((n) => n.id === id);
 
 export default function ChatWidget() {
+  const { isEnabled } = useFeatureFlags();
+  const resumeEnabled = isEnabled("resume_review");
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -101,7 +104,7 @@ export default function ChatWidget() {
       content: "Hi! Pick a topic and I will guide you.",
     },
   ]);
-  const [activeNode, setActiveNode] = useState("resume");
+  const [activeNode, setActiveNode] = useState(resumeEnabled ? "resume" : "jobs");
   const endRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -181,7 +184,8 @@ export default function ChatWidget() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {FAQ_TREE.filter((n) =>
-                ["resume", "jobs", "pricing", "account", "support"].includes(n.id)
+                ["resume", "jobs", "pricing", "account", "support"].includes(n.id) &&
+                (resumeEnabled || n.id !== "resume")
               ).map((node) => (
                 <button
                   key={node.id}
@@ -199,7 +203,9 @@ export default function ChatWidget() {
                   Follow-ups
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {getNode(activeNode).followUps.map((item) => (
+                  {getNode(activeNode).followUps
+                    .filter((item) => resumeEnabled || item.id !== "resume")
+                    .map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleOptionClick(item.id, item.label)}
@@ -207,7 +213,7 @@ export default function ChatWidget() {
                     >
                       {item.label}
                     </button>
-                  ))}
+                    ))}
                 </div>
               </div>
             )}
@@ -229,4 +235,5 @@ export default function ChatWidget() {
     </div>
   );
 }
+
 

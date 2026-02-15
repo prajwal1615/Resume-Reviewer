@@ -4,12 +4,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useNotifications } from "../context/NotificationsContext";
 import { useTranslation } from "react-i18next";
+import { useFeatureFlags } from "../context/FeatureFlagsContext";
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAuth = !!localStorage.getItem("token");
   const { t, i18n } = useTranslation();
+  const { isEnabled } = useFeatureFlags();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [profile, setProfile] = useState({
     name: "",
@@ -158,16 +160,18 @@ export default function Navbar() {
             >
               {t("nav.dashboard")}
             </Link>
-            <Link
-              to="/resume-review"
-              className={`font-medium transition-colors ${
-                location.pathname === "/resume-review"
-                  ? "text-primary-600"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-              }`}
-            >
-              {t("nav.resumeReview")}
-            </Link>
+            {isEnabled("resume_review") && (
+              <Link
+                to="/resume-review"
+                className={`font-medium transition-colors ${
+                  location.pathname === "/resume-review"
+                    ? "text-primary-600"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                }`}
+              >
+                {t("nav.resumeReview")}
+              </Link>
+            )}
             {profile.role === "admin" && (
               <Link
                 to="/admin/users"
@@ -180,25 +184,49 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
-            <Link
-              to="/pricing"
-              className={`hidden sm:inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
-                profile.isPremium
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-primary-200 bg-primary-50 text-primary-700 hover:border-primary-300"
-              }`}
-            >
-              {profile.isPremium ? "Premium" : "Upgrade"}
-              {profile.isPremium ? (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                  Active
-                </span>
-              ) : (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-100 text-primary-700">
-                  Free
-                </span>
-              )}
-            </Link>
+            {profile.role === "admin" && (
+              <Link
+                to="/admin/feature-flags"
+                className={`font-medium transition-colors ${
+                  location.pathname === "/admin/feature-flags"
+                    ? "text-primary-600"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                }`}
+              >
+                Flags
+              </Link>
+            )}
+            {isEnabled("premium_pricing") && (
+              <Link
+                to="/pricing"
+                className={`hidden sm:inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  profile.role === "admin"
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : profile.isPremium
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-primary-200 bg-primary-50 text-primary-700 hover:border-primary-300"
+                }`}
+              >
+                {profile.role === "admin"
+                  ? "Admin Access"
+                  : profile.isPremium
+                    ? "Premium"
+                    : "Upgrade"}
+                {profile.role === "admin" ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    Unlimited
+                  </span>
+                ) : profile.isPremium ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-100 text-primary-700">
+                    Free
+                  </span>
+                )}
+              </Link>
+            )}
             <div className="relative" ref={helpRef}>
               <button
                 type="button"

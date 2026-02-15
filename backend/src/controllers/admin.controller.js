@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const {
+  getFeatureFlags,
+  isKnownFeatureFlag,
+  setFeatureFlag,
+} = require("../services/featureFlags");
 
 exports.listUsers = async (req, res) => {
   const q = String(req.query.q || "").trim();
@@ -59,4 +64,32 @@ exports.updateUserBlockStatus = async (req, res) => {
   }
 
   res.json({ message: blocked ? "User blocked." : "User unblocked.", user });
+};
+
+exports.listFeatureFlags = async (req, res) => {
+  const { items } = await getFeatureFlags();
+  res.json({ items });
+};
+
+exports.updateFeatureFlag = async (req, res) => {
+  const { key } = req.params;
+  const enabled = req.body?.enabled;
+
+  if (!isKnownFeatureFlag(key)) {
+    return res.status(400).json({ message: "Unknown feature flag." });
+  }
+  if (typeof enabled !== "boolean") {
+    return res.status(400).json({ message: "`enabled` must be a boolean." });
+  }
+
+  const updated = await setFeatureFlag(key, enabled);
+  res.json({
+    message: `Feature flag '${key}' updated.`,
+    item: {
+      key: updated.key,
+      enabled: updated.enabled,
+      description: updated.description,
+      updatedAt: updated.updatedAt,
+    },
+  });
 };

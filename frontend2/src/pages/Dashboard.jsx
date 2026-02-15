@@ -313,8 +313,7 @@ export default function Dashboard() {
 
   const upcomingReminders = jobs
     .filter((job) => job.reminderAt)
-    .sort((a, b) => new Date(a.reminderAt) - new Date(b.reminderAt))
-    .slice(0, 6);
+    .sort((a, b) => new Date(a.reminderAt) - new Date(b.reminderAt));
 
   const handleSnooze = async (job, days) => {
     try {
@@ -415,15 +414,15 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
             <p className="text-slate-600 mt-1 dark:text-slate-300">Track and manage your job applications</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2 shrink-0"
+            className="btn-primary flex w-full sm:w-auto justify-center items-center gap-2 shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -477,7 +476,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="mb-6 overflow-x-auto">
+          <div className="flex min-w-max items-center gap-2">
           {["list", "kanban", "calendar"].map((mode) => (
             <button
               key={mode}
@@ -495,6 +495,7 @@ export default function Dashboard() {
                 : "Calendar"}
             </button>
           ))}
+          </div>
         </div>
 
         {loading ? (
@@ -532,7 +533,7 @@ export default function Dashboard() {
                   Reset
                 </button>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
                   {["All", "Applied", "Interview", "Offer", "Rejected"].map((status) => (
                     <button
@@ -550,10 +551,10 @@ export default function Dashboard() {
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={handleListLayoutToggle}
-                    className="btn-secondary flex items-center gap-2"
+                    className="btn-secondary flex items-center gap-2 w-full sm:w-auto justify-center"
                     title={listLayout === "cards" ? "Switch to table view" : "Switch to card view"}
                   >
                     {listLayout === "cards" ? (
@@ -582,129 +583,52 @@ export default function Dashboard() {
                       </>
                     )}
                   </button>
-                  <button onClick={exportJobsCsv} className="btn-secondary">
+                  <button onClick={exportJobsCsv} className="btn-secondary w-full sm:w-auto">
                     Export CSV
                   </button>
-                  <button onClick={exportJobsPdf} className="btn-primary">
+                  <button onClick={exportJobsPdf} className="btn-primary w-full sm:w-auto">
                     Export PDF
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-6">
-              <div>
-                {filteredJobs.length === 0 ? (
-                  <div className="card p-12 text-center">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                      No jobs in {statusFilter}
-                    </h3>
-                    <p className="text-slate-500 mb-6">
-                      Try switching filters or add a new job in this stage.
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                      <button onClick={() => setStatusFilter("All")} className="btn-secondary">
-                        Clear filter
-                      </button>
-                      <button onClick={() => setShowAddModal(true)} className="btn-primary">
-                        Add Job
-                      </button>
-                    </div>
-                  </div>
-                ) : listLayout === "cards" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {sortedJobs.map((job) => (
-                      <JobCard
-                        key={job._id}
-                        job={job}
-                        onUpdate={() => fetchJobs(searchTerm.trim())}
-                        onDelete={() => fetchJobs(searchTerm.trim())}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <JobTable
-                    jobs={sortedJobs}
-                    onRefresh={() => fetchJobs(searchTerm.trim())}
-                    formatDate={formatDate}
-                  />
-                )}
-              </div>
-
-              <div className="space-y-6">
-                <div className="card p-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
-                  {recentActivity.length === 0 ? (
-                    <p className="text-sm text-slate-500">
-                      Activity will show up as you add or update jobs.
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {recentActivity.map((job) => (
-                        <div key={`activity-${job._id}`} className="flex gap-3">
-                          <div className="mt-1 h-2.5 w-2.5 rounded-full bg-primary-500" />
-                          <div>
-                            <p className="text-sm font-medium text-slate-800">
-                              {job.company} · {job.role}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              Status: {job.status}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {new Date(job.updatedAt || job.createdAt).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="card p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                    Status Breakdown
+            <div>
+              {filteredJobs.length === 0 ? (
+                <div className="card p-12 text-center">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    No jobs in {statusFilter}
                   </h3>
-                  <Pie
-                    data={{
-                      labels: STATUS_ORDER,
-                      datasets: [
-                        {
-                          data: STATUS_ORDER.map((s) => statusCount(s)),
-                          backgroundColor: [
-                            "#3b82f6",
-                            "#f59e0b",
-                            "#10b981",
-                            "#ef4444",
-                          ],
-                        },
-                      ],
-                    }}
-                    options={{ plugins: { legend: { position: "bottom" } } }}
-                  />
+                  <p className="text-slate-500 mb-6">
+                    Try switching filters or add a new job in this stage.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button onClick={() => setStatusFilter("All")} className="btn-secondary">
+                      Clear filter
+                    </button>
+                    <button onClick={() => setShowAddModal(true)} className="btn-primary">
+                      Add Job
+                    </button>
+                  </div>
                 </div>
-
-                <div className="card p-6">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
-                    Reminders Due (Next 7 Days)
-                  </h3>
-                  <Bar
-                    data={{
-                      labels: remindersNext7.map((d) => d.label),
-                      datasets: [
-                        {
-                          label: "Reminders",
-                          data: remindersNext7.map((d) => d.count),
-                          backgroundColor: "#22c55e",
-                        },
-                      ],
-                    }}
-                    options={{
-                      plugins: { legend: { display: false } },
-                      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-                    }}
-                  />
+              ) : listLayout === "cards" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {sortedJobs.map((job) => (
+                    <JobCard
+                      key={job._id}
+                      job={job}
+                      onUpdate={() => fetchJobs(searchTerm.trim())}
+                      onDelete={() => fetchJobs(searchTerm.trim())}
+                    />
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <JobTable
+                  jobs={sortedJobs}
+                  onRefresh={() => fetchJobs(searchTerm.trim())}
+                  formatDate={formatDate}
+                />
+              )}
             </div>
 
             <div className="card p-6">
@@ -774,9 +698,94 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="card p-6 xl:col-span-1">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
+                {recentActivity.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Activity will show up as you add or update jobs.
+                  </p>
+                ) : (
+                  <div className="space-y-4 max-h-[320px] overflow-auto pr-1">
+                    {recentActivity.map((job) => (
+                      <div key={`activity-${job._id}`} className="flex gap-3">
+                        <div className="mt-1 h-2.5 w-2.5 rounded-full bg-primary-500" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            {job.company} · {job.role}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Status: {job.status}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(job.updatedAt || job.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="card p-6 xl:col-span-1">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  Status Breakdown
+                </h3>
+                <div className="h-64">
+                  <Pie
+                    data={{
+                      labels: STATUS_ORDER,
+                      datasets: [
+                        {
+                          data: STATUS_ORDER.map((s) => statusCount(s)),
+                          backgroundColor: [
+                            "#3b82f6",
+                            "#f59e0b",
+                            "#10b981",
+                            "#ef4444",
+                          ],
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: "bottom" } },
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="card p-6 xl:col-span-1">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  Reminders Due (Next 7 Days)
+                </h3>
+                <div className="h-64">
+                  <Bar
+                    data={{
+                      labels: remindersNext7.map((d) => d.label),
+                      datasets: [
+                        {
+                          label: "Reminders",
+                          data: remindersNext7.map((d) => d.count),
+                          backgroundColor: "#22c55e",
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { display: false } },
+                      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         ) : viewMode === "kanban" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {STATUS_ORDER.map((status) => (
               <div
                 key={status}
@@ -836,7 +845,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-6" ref={calendarSectionRef}>
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <button
@@ -925,7 +934,8 @@ export default function Dashboard() {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-7 gap-2 mb-4">
+              <div className="overflow-x-auto pb-2">
+              <div className="grid grid-cols-7 gap-2 mb-4 min-w-[700px]">
                 {weekDays.map((date) => (
                   <button
                     key={`week-${formatKey(date)}`}
@@ -948,14 +958,14 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-2 text-xs text-slate-400 mb-2">
+              <div className="grid grid-cols-7 gap-2 text-xs text-slate-400 mb-2 min-w-[700px]">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                   <div key={day} className="text-center">
                     {day}
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-2 min-w-[700px]">
                 {monthDays.map((date) => {
                   const key = formatKey(date);
                   const events = eventsByDate[key] || [];
@@ -974,7 +984,7 @@ export default function Dashboard() {
                         setSelectedWeekStart(weekStart(date));
                         setWeekHighlightEnabled(false);
                       }}
-                      className={`min-h-[84px] rounded-xl border p-2 text-left transition-colors ${
+                      className={`min-h-[74px] sm:min-h-[84px] rounded-xl border p-2 text-left transition-colors ${
                         isSelected
                           ? "border-primary-500 bg-primary-50"
                           : "border-slate-200 hover:border-slate-300"
@@ -1007,6 +1017,7 @@ export default function Dashboard() {
                     </button>
                   );
                 })}
+              </div>
               </div>
             </div>
 

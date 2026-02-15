@@ -5,6 +5,11 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { sendPasswordResetEmail, smtpEnabled } = require("../services/mailer");
 
+const isAdminEmail = (email) => {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  return Boolean(adminEmail) && email === adminEmail;
+};
+
 exports.register = async (req, res) => {
   const { name, password } = req.body;
   const email = req.body.email?.trim().toLowerCase();
@@ -18,7 +23,8 @@ exports.register = async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({ name, email, password: hashedPassword });
+    const role = isAdminEmail(email) ? "admin" : "user";
+    await User.create({ name, email, password: hashedPassword, role });
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     if (err.code === 11000) {
@@ -39,12 +45,16 @@ exports.login = async (req, res) => {
   if (!password) return res.status(400).json({ message: "Password is required" });
   const user = await User.findOne({ email });
   if (!user) return res.status(400).json({ message: "Invalid credentials" });
+  if (user.isBlocked) {
+    return res.status(403).json({ message: "Your account is blocked." });
+  }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+  const role = user.role || "user";
 
   const token = jwt.sign(
-    { id: user._id, email: user.email },
+    { id: user._id, email: user.email, role },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );

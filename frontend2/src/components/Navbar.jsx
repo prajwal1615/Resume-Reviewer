@@ -16,6 +16,7 @@ export default function Navbar() {
     avatarUrl: "",
     themePreference: "light",
     languagePreference: "en",
+    role: "user",
   });
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -48,6 +49,7 @@ export default function Navbar() {
             languagePreference: res.data?.languagePreference || "en",
             isPremium: res.data?.isPremium || false,
             premiumUntil: res.data?.premiumUntil || null,
+            role: res.data?.role || "user",
           });
           const preferred = res.data?.themePreference === "dark" ? "dark" : "light";
           setTheme(preferred);
@@ -166,6 +168,18 @@ export default function Navbar() {
             >
               {t("nav.resumeReview")}
             </Link>
+            {profile.role === "admin" && (
+              <Link
+                to="/admin/users"
+                className={`font-medium transition-colors ${
+                  location.pathname === "/admin/users"
+                    ? "text-primary-600"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                }`}
+              >
+                Admin
+              </Link>
+            )}
             <Link
               to="/pricing"
               className={`hidden sm:inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
